@@ -8,6 +8,9 @@
   "engines": {
     "vscode": "^1.107.0"
   },
+  "repository": {
+    "url": "https://github.com/ygorazambuja/pubspec-platform"
+  },
   "categories": [
     "Other"
   ],
