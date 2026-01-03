@@ -282,5 +282,3 @@ Versions are automatically bumped based on:
 ---
 
 *Developed with ❤️ for the Flutter/Dart community*
-#   p u b s p e c - p l a t f o r m  
- 
