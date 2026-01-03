@@ -1,6 +1,8 @@
 name: Publish Extension
 
 on:
+  push:
+    branches: [main, master]
   release:
     types: [created]
 
@@ -23,6 +25,16 @@ jobs:
 
       - name: Package extension
         run: npx vsce package
+
+      - name: Debug secrets
+        run: |
+          echo "VSCE_TOKEN length: ${#VSCE_TOKEN}"
+          echo "OVSX_TOKEN length: ${#OVSX_TOKEN}"
+          echo "VSCE_TOKEN starts with: ${VSCE_TOKEN:0:4}"
+          echo "OVSX_TOKEN starts with: ${OVSX_TOKEN:0:4}"
+        env:
+          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
 
       - name: Publish to VS Marketplace
         run: npx vsce publish -p ${{ secrets.VSCE_TOKEN }}
