@@ -1,190 +1,28 @@
-name: Publish VSCode Extension
+name: Publish Extension
 
 on:
-  push:
-    branches: [ main, master ]
-    paths-ignore:
-      - 'README.md'
-      - 'docs/**'
-      - '.github/**'
-      - '!.github/workflows/**'
   release:
-    types: [published]
-  workflow_dispatch:
-    inputs:
-      version_type:
-        description: 'Version bump type'
-        required: true
-        default: 'patch'
-        type: choice
-        options:
-        - patch
-        - minor
-        - major
-      publish:
-        description: 'Publish to marketplace?'
-        required: true
-        default: false
-        type: boolean
+    types: [created]
 
 jobs:
-  test:
-    name: Test Extension
+  publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: '18'
 
       - name: Install dependencies
-        run: pnpm install
-
-      - name: Run unit tests
-        run: pnpm run test:unit
-
-      - name: Run linting
-        run: pnpm run lint
-
-      - name: Check TypeScript types
-        run: pnpm run check-types
+        run: npm install
 
       - name: Build extension
-        run: pnpm run package
+        run: npm run compile
 
-  version-and-publish:
-    name: Version & Publish
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Package extension
+        run: npx vsce package
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Build extension
-        run: pnpm run package
-
-      - name: Verify extension package
-        run: |
-          # Check that the .vsix file was created
-          if [ ! -f "*.vsix" ]; then
-            echo "No .vsix file found after packaging"
-            exit 1
-          fi
-          echo "Extension packaged successfully"
-
-      - name: Bump version (workflow_dispatch)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          VERSION_TYPE="${{ inputs.version_type }}"
-          echo "Bumping version with type: $VERSION_TYPE"
-          if [ "$VERSION_TYPE" = "patch" ]; then
-            pnpm version patch --no-git-tag-version
-          elif [ "$VERSION_TYPE" = "minor" ]; then
-            pnpm version minor --no-git-tag-version
-          elif [ "$VERSION_TYPE" = "major" ]; then
-            pnpm version major --no-git-tag-version
-          else
-            echo "Invalid version type: $VERSION_TYPE"
-            exit 1
-          fi
-
-      - name: Bump version (push to main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          # Auto-increment patch version for main branch pushes
-          echo "Auto-bumping patch version for main branch push"
-          pnpm version patch --no-git-tag-version
-
-      - name: Get version
-        id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-
-      - name: Create git tag
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add package.json
-          git commit -m "Bump version to ${{ steps.version.outputs.version }}" || echo "No changes to commit"
-          git tag "v${{ steps.version.outputs.version }}"
-
-      - name: Push changes and tags
-        run: |
-          git push
-          git push --tags
-
-      - name: Publish to VSCode Marketplace
-        if: github.repository_owner == 'YgorAzambuja' || env.VSCE_PAT != ''
-        run: |
-          if [ -n "$VSCE_PAT" ]; then
-            echo "Publishing with VSCE_PAT..."
-            npx @vscode/vsce publish -p "$VSCE_PAT"
-          else
-            echo "Publishing with GitHub token..."
-            npx @vscode/vsce publish --pat "$GITHUB_TOKEN"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-
-  create-release:
-    name: Create Release
-    needs: version-and-publish
-    runs-on: ubuntu-latest
-    if: github.event_name != 'release'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Get version
-        id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          release_name: Release v${{ steps.version.outputs.version }}
-          body: |
-            ## Changes in this release
-
-            - Version bump to ${{ steps.version.outputs.version }}
-            - Automated deployment via GitHub Actions
-
-            ## Installation
-
-            This extension is now available on the [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=BigJuicer.pubspec-platform).
-
-            **Install via command line:**
-            ```
-            code --install-extension BigJuicer.pubspec-platform
-            ```
-          draft: false
-          prerelease: false
+      - name: Publish to VS Marketplace
+        run: npx vsce publish -p ${{ secrets.VSCE_TOKEN }}
