@@ -26,3 +26,6 @@ jobs:
 
       - name: Publish to VS Marketplace
         run: npx vsce publish -p ${{ secrets.VSCE_TOKEN }}
+
+      - name: Publish to Open VSX
+        run: npx ovsx publish -p ${{ secrets.OVSX_TOKEN }}
