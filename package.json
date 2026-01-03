@@ -6,7 +6,8 @@
   "publisher": "YgorAzambuja",
   "icon": "docs/logo.jpg",
   "engines": {
-    "vscode": "^1.107.0"
+    "vscode": "^1.107.0",
+    "node": ">=24.0.0"
   },
   "repository": {
     "url": "https://github.com/ygorazambuja/pubspec-platform"
