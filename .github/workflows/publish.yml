@@ -26,20 +26,20 @@ jobs:
       - name: Package extension
         run: npx vsce package
 
-      - name: Debug secrets
-        run: |
-          echo "VSCE_TOKEN length: ${#VSCE_TOKEN}"
-          echo "OVSX_TOKEN length: ${#OVSX_TOKEN}"
-          echo "VSCE_TOKEN starts with: ${VSCE_TOKEN:0:4}"
-          echo "OVSX_TOKEN starts with: ${OVSX_TOKEN:0:4}"
-        env:
-          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
-          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
-
       - name: Publish to VS Marketplace
-        run: npx vsce publish -p ${{ secrets.VSCE_TOKEN }}
-        if: secrets.VSCE_TOKEN != ''
+        run: |
+          if [ -n "${{ secrets.VSCE_TOKEN }}" ]; then
+            echo "Publishing to VS Code Marketplace..."
+            npx vsce publish -p ${{ secrets.VSCE_TOKEN }}
+          else
+            echo "VSCE_TOKEN not set, skipping VS Code Marketplace publish"
+          fi
 
       - name: Publish to Open VSX
-        run: npx ovsx publish -p ${{ secrets.OVSX_TOKEN }}
-        if: secrets.OVSX_TOKEN != ''
+        run: |
+          if [ -n "${{ secrets.OVSX_TOKEN }}" ]; then
+            echo "Publishing to Open VSX..."
+            npx ovsx publish -p ${{ secrets.OVSX_TOKEN }}
+          else
+            echo "OVSX_TOKEN not set, skipping Open VSX publish"
+          fi
